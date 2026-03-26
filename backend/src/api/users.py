@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
 
-from src.api.deps import AdminUser
+from src.api.deps import AdminUser, CurrentUser
 from src.db import db
 
 router = APIRouter()
@@ -43,6 +43,37 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
     start_date: Optional[date] = None
     timezone: Optional[str] = None
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_current_user(user: CurrentUser):
+    """Get the current authenticated user."""
+    row = await db.fetchrow(
+        """
+        SELECT
+            u.*,
+            calculate_streak(u.id) as current_streak,
+            (SELECT COUNT(*) FROM hard75_days WHERE user_id = u.id AND all_done = TRUE) as total_completed
+        FROM users u
+        WHERE u.id = $1
+        """,
+        user.id,
+    )
+
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return UserResponse(
+        id=row["id"],
+        email=row["email"],
+        name=row["name"],
+        role=row["role"],
+        avatar_url=row["avatar_url"],
+        start_date=row["start_date"],
+        timezone=row["timezone"] or "America/New_York",
+        current_streak=row["current_streak"] or 0,
+        total_completed=row["total_completed"] or 0,
+    )
 
 
 @router.get("", response_model=list[UserResponse])

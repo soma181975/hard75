@@ -9,8 +9,8 @@ services:
       - "6432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
-      - ./scripts/seed-dev.sql:/docker-entrypoint-initdb.d/02-seed.sql
+      - ./backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./backend/scripts/seed-dev.sql:/docker-entrypoint-initdb.d/02-seed.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hard75"]
       interval: 5s
@@ -47,8 +47,8 @@ services:
       exit 0;
       "
 
-  app:
-    build: .
+  api:
+    build: ./backend
     ports:
       - "8080:8000"
     environment:
@@ -68,8 +68,8 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL:-hard75.letsdo@gmail.com}
       - ADMIN_NAME=${ADMIN_NAME:-Admin User}
     volumes:
-      - ./src:/app/src
-      - ./static:/app/static
+      - ./backend/src:/app/src
+      - ./backend/static:/app/static
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,7 +82,7 @@ services:
   # 2. Run: python scripts/generate_gmail_token.py
   # 3. Start with: docker compose --profile agent up -d
   agent:
-    build: .
+    build: ./backend
     command: python -m src.agent.runner
     profiles:
       - agent
@@ -98,7 +98,7 @@ services:
       - GMAIL_CREDENTIALS_FILE=/app/credentials.json
       - GMAIL_TOKEN_FILE=/app/token.pickle
     volumes:
-      - ./src:/app/src
+      - ./backend/src:/app/src
       - ./token.pickle:/app/token.pickle:ro
       - ./credentials.json:/app/credentials.json:ro
     depends_on:
