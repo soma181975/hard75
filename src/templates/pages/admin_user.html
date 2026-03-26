@@ -1,0 +1,225 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ target_user.name }} - Admin - Hard 75 Tracker{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="/admin" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </a>
+            <div class="flex items-center space-x-3">
+                {% if target_user.avatar_url %}
+                <img src="{{ target_user.avatar_url }}" alt="{{ target_user.name }}" class="w-12 h-12 rounded-full">
+                {% else %}
+                <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white text-xl">
+                    {{ target_user.name[0].upper() }}
+                </div>
+                {% endif %}
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ target_user.name }}</h1>
+                    <p class="text-gray-500">{{ target_user.email }}</p>
+                </div>
+            </div>
+        </div>
+        <span class="px-3 py-1 rounded-full text-sm
+            {% if target_user.role == 'admin' %}bg-purple-100 text-purple-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+            {{ target_user.role }}
+        </span>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex justify-between items-start">
+                <h3 class="text-sm font-medium text-gray-500">Start Date</h3>
+                <button onclick="document.getElementById('editStartDateModal').classList.remove('hidden')"
+                        class="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+            </div>
+            <p class="text-2xl font-bold text-gray-900 mt-2">{{ target_user.start_date or 'Not set' }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-medium text-gray-500">Days Completed</h3>
+            <p class="text-2xl font-bold text-gray-900 mt-2">{{ target_user.total_completed }}/75</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-medium text-gray-500">Current Streak</h3>
+            <p class="text-2xl font-bold text-gray-900 mt-2">{{ target_user.current_streak }} days</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-medium text-gray-500">Completion Rate</h3>
+            <p class="text-2xl font-bold text-gray-900 mt-2">{{ ((target_user.total_completed / 75) * 100) | round(1) }}%</p>
+        </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">75-Day Progress</h2>
+        <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+            <div class="bg-blue-600 h-4 rounded-full"
+                 style="width: {{ (target_user.total_completed / 75 * 100) | round(1) }}%"></div>
+        </div>
+
+        <!-- Day grid -->
+        <div class="grid grid-cols-15 gap-1">
+            {% for i in range(1, 76) %}
+            {% set day = days | selectattr('day_number', 'equalto', i) | first %}
+            <div class="w-6 h-6 rounded flex items-center justify-center text-xs cursor-pointer
+                {% if day and day.all_done %}
+                bg-green-500 text-white
+                {% elif day %}
+                bg-yellow-400 text-gray-800
+                {% else %}
+                bg-gray-200 text-gray-500
+                {% endif %}"
+                 title="Day {{ i }}{% if day %}: {{ 'Complete' if day.all_done else 'In progress' }}{% endif %}">
+                {{ i }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Day Details -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h2 class="text-lg font-semibold text-gray-900">Daily Log</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Day</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">W1</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">W2</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Diet</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Water</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Read</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Photo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Steps</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for day in days | reverse %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            Day {{ day.day_number }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ day.date }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if day.workout1_done %}
+                            <span class="text-green-500">&#10003;</span>
+                            {% else %}
+                            <span class="text-gray-300">&#10007;</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if day.workout2_done %}
+                            <span class="text-green-500">&#10003;</span>
+                            {% else %}
+                            <span class="text-gray-300">&#10007;</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if day.diet_done %}
+                            <span class="text-green-500">&#10003;</span>
+                            {% else %}
+                            <span class="text-gray-300">&#10007;</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if day.water_done %}
+                            <span class="text-green-500">&#10003;</span>
+                            {% else %}
+                            <span class="text-gray-300">&#10007;</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if day.reading_done %}
+                            <span class="text-green-500">&#10003;</span>
+                            {% else %}
+                            <span class="text-gray-300">&#10007;</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if day.photo_done %}
+                            <span class="text-green-500">&#10003;</span>
+                            {% else %}
+                            <span class="text-gray-300">&#10007;</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ day.steps | default('-', true) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Workouts -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Workouts</h2>
+        {% if workouts %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for workout in workouts %}
+            <div class="border rounded-lg p-4">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-sm font-medium text-gray-900">{{ workout.date }}</span>
+                    <span class="px-2 py-1 text-xs rounded-full
+                        {% if workout.is_outdoor %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                        Workout {{ workout.workout_number or '?' }}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600">{{ workout.workout_type or 'Workout' }}</p>
+                {% if workout.duration_minutes %}
+                <p class="text-xs text-gray-500 mt-1">{{ workout.duration_minutes }} minutes</p>
+                {% endif %}
+                {% if workout.notes %}
+                <p class="text-xs text-gray-500 mt-2 italic">{{ workout.notes }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500">No workouts logged yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Edit Start Date Modal -->
+<div id="editStartDateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-sm">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Start Date</h3>
+        <form hx-patch="/api/users/{{ target_user.id }}"
+              hx-headers='{"Content-Type": "application/json"}'
+              hx-ext="json-enc"
+              hx-swap="none"
+              hx-on::after-request="location.reload()">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <input type="date" name="start_date"
+                       value="{{ target_user.start_date or '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button"
+                        class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-50"
+                        onclick="document.getElementById('editStartDateModal').classList.add('hidden')">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

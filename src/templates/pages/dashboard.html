@@ -1,0 +1,191 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Dashboard - Hard 75 Tracker{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-gray-900">Your Progress</h1>
+        <div class="flex items-center space-x-4">
+            <div class="text-right">
+                <p class="text-sm text-gray-500">Current Streak</p>
+                <p class="text-2xl font-bold text-blue-600">{{ streak }} days</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Overview -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">75-Day Challenge</h2>
+            <span class="text-sm text-gray-500">{{ total_completed }}/75 days completed</span>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+            <div class="bg-blue-600 h-4 rounded-full transition-all duration-500"
+                 style="width: {{ (total_completed / 75 * 100) | round(1) }}%"></div>
+        </div>
+
+        <!-- Checklist grid -->
+        <div id="checklist" hx-get="/partials/checklist" hx-trigger="load">
+            <div class="grid grid-cols-15 gap-1">
+                {% for i in range(1, 76) %}
+                {% set day = days | selectattr('day_number', 'equalto', i) | first %}
+                <div class="w-6 h-6 rounded flex items-center justify-center text-xs
+                    {% if day and day.all_done %}
+                    bg-green-500 text-white
+                    {% elif day %}
+                    bg-yellow-400 text-gray-800
+                    {% else %}
+                    bg-gray-200 text-gray-500
+                    {% endif %}">
+                    {{ i }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Streak Card -->
+        <div class="bg-white rounded-lg shadow p-6"
+             hx-get="/partials/streak" hx-trigger="every 60s">
+            <h3 class="text-sm font-medium text-gray-500">Current Streak</h3>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ streak }}</p>
+            <p class="text-sm text-gray-500 mt-1">consecutive days</p>
+        </div>
+
+        <!-- Days Remaining -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-medium text-gray-500">Days Remaining</h3>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ 75 - total_completed }}</p>
+            <p class="text-sm text-gray-500 mt-1">to complete the challenge</p>
+        </div>
+
+        <!-- Completion Rate -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-medium text-gray-500">Completion Rate</h3>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ ((total_completed / 75) * 100) | round(1) }}%</p>
+            <p class="text-sm text-gray-500 mt-1">of the challenge</p>
+        </div>
+    </div>
+
+    <!-- Today's Nutrition -->
+    <div class="bg-white rounded-lg shadow p-6" hx-get="/partials/nutrition" hx-trigger="load">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Today's Nutrition</h3>
+        <div id="nutrition-summary">
+            <p class="text-gray-500">Loading nutrition data...</p>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Volume Chart -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Training Volume</h3>
+            <canvas id="volumeChart" height="200"></canvas>
+        </div>
+
+        <!-- Steps Chart -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Daily Steps</h3>
+            <canvas id="stepsChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Nutrition Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Calories Chart -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Daily Calories</h3>
+            <canvas id="caloriesChart" height="200"></canvas>
+        </div>
+
+        <!-- Macros Chart -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Protein Intake</h3>
+            <canvas id="proteinChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent Meals -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Meals</h3>
+        <div id="meals" hx-get="/partials/meals" hx-trigger="load">
+            <p class="text-gray-500">Loading meals...</p>
+        </div>
+    </div>
+
+    <!-- Recent Workouts -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Workouts</h3>
+        <div id="workouts" hx-get="/partials/workouts" hx-trigger="load">
+            {% if workouts %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for workout in workouts %}
+                <div class="border rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-sm font-medium text-gray-900">{{ workout.date }}</span>
+                        <span class="px-2 py-1 text-xs rounded-full
+                            {% if workout.is_outdoor %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {% if workout.is_outdoor %}Outdoor{% else %}Indoor{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-600">{{ workout.workout_type or 'Workout' }}</p>
+                    {% if workout.duration_minutes %}
+                    <p class="text-xs text-gray-500 mt-1">{{ workout.duration_minutes }} minutes</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500">No workouts logged yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Photo Gallery -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Progress Photos</h3>
+        <div id="photos" hx-get="/partials/photos" hx-trigger="load">
+            <p class="text-gray-500">Loading photos...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize charts when data is available
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Fetch volume data
+        try {
+            const volumeRes = await fetch('/api/workouts/volume?days=30');
+            const volumeData = await volumeRes.json();
+            initVolumeChart(volumeData);
+        } catch (e) {
+            console.log('No volume data available');
+        }
+
+        // Fetch steps data from days
+        const days = {{ days | tojson | safe }};
+        const stepsData = days
+            .filter(d => d.steps)
+            .map(d => ({ date: d.date, steps: d.steps }));
+        initStepsChart(stepsData);
+
+        // Fetch nutrition trends
+        try {
+            const nutritionRes = await fetch('/api/meals/trends?days=30');
+            const nutritionData = await nutritionRes.json();
+            initCaloriesChart(nutritionData);
+            initProteinChart(nutritionData);
+        } catch (e) {
+            console.log('No nutrition data available');
+        }
+    });
+</script>
+{% endblock %}

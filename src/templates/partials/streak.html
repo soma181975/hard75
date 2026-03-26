@@ -1,0 +1,14 @@
+<div class="text-center">
+    <p class="text-4xl font-bold text-blue-600">{{ streak }}</p>
+    <p class="text-sm text-gray-500 mt-1">day streak</p>
+</div>
+<div class="mt-4 pt-4 border-t">
+    <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Completed</span>
+        <span class="font-medium text-gray-900">{{ total_completed }}/75</span>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+        <div class="bg-blue-600 h-2 rounded-full transition-all duration-500"
+             style="width: {{ (total_completed / 75 * 100) | round(1) }}%"></div>
+    </div>
+</div>

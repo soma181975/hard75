@@ -1,0 +1,61 @@
+{% if workouts %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for workout in workouts %}
+    <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+        <div class="flex justify-between items-start mb-2">
+            <span class="text-sm font-medium text-gray-900">{{ workout.date }}</span>
+            <div class="flex space-x-1">
+                {% if workout.workout_number %}
+                <span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600">
+                    #{{ workout.workout_number }}
+                </span>
+                {% endif %}
+                <span class="px-2 py-0.5 text-xs rounded
+                    {% if workout.is_outdoor %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                    {% if workout.is_outdoor %}Outdoor{% else %}Indoor{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <p class="text-sm font-medium text-gray-800">{{ workout.workout_type or 'Workout' | title }}</p>
+
+        <div class="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+            {% if workout.duration_minutes %}
+            <span class="flex items-center">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                {{ workout.duration_minutes }} min
+            </span>
+            {% endif %}
+            {% if workout.set_count %}
+            <span class="flex items-center">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                {{ workout.set_count }} sets
+            </span>
+            {% endif %}
+            {% if workout.location %}
+            <span>{{ workout.location }}</span>
+            {% endif %}
+        </div>
+
+        {% if workout.notes %}
+        <p class="text-xs text-gray-500 mt-2 line-clamp-2">{{ workout.notes }}</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-8">
+    <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M13 10V3L4 14h7v7l9-11h-7z"/>
+    </svg>
+    <p class="text-gray-500 mt-2">No workouts logged yet</p>
+    <p class="text-sm text-gray-400 mt-1">Email your workout details to track them!</p>
+</div>
+{% endif %}

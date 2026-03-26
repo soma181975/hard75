@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+    <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h1 style="color: #1f2937; margin-top: 0;">Hard 75 Daily Summary</h1>
+
+        <p>Hi {{ user.name }},</p>
+
+        <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+            <h2 style="margin-top: 0; color: #1e40af;">Your Progress</h2>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0;"><strong>Current Streak:</strong></td>
+                    <td style="padding: 8px 0; text-align: right;">{{ streak }} days</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0;"><strong>Days Completed:</strong></td>
+                    <td style="padding: 8px 0; text-align: right;">{{ total_completed }}/75</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0;"><strong>Progress:</strong></td>
+                    <td style="padding: 8px 0; text-align: right;">{{ progress_pct }}%</td>
+                </tr>
+            </table>
+        </div>
+
+        {% if yesterday %}
+        <div style="background: {{ '#d1fae5' if yesterday.all_done else '#fef3c7' }}; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h2 style="margin-top: 0; color: {{ '#065f46' if yesterday.all_done else '#92400e' }};">
+                Yesterday (Day {{ yesterday.day_number }})
+            </h2>
+            <p>
+                <strong>Status:</strong>
+                {{ 'All tasks completed!' if yesterday.all_done else 'Some tasks remaining' }}
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px;">
+                <div style="text-align: center; padding: 10px; background: {{ '#059669' if yesterday.workout1_done else '#d1d5db' }}; border-radius: 4px; color: white;">
+                    Workout 1
+                </div>
+                <div style="text-align: center; padding: 10px; background: {{ '#059669' if yesterday.workout2_done else '#d1d5db' }}; border-radius: 4px; color: white;">
+                    Workout 2
+                </div>
+                <div style="text-align: center; padding: 10px; background: {{ '#059669' if yesterday.diet_done else '#d1d5db' }}; border-radius: 4px; color: white;">
+                    Diet
+                </div>
+                <div style="text-align: center; padding: 10px; background: {{ '#059669' if yesterday.water_done else '#d1d5db' }}; border-radius: 4px; color: white;">
+                    Water
+                </div>
+                <div style="text-align: center; padding: 10px; background: {{ '#059669' if yesterday.reading_done else '#d1d5db' }}; border-radius: 4px; color: white;">
+                    Reading
+                </div>
+                <div style="text-align: center; padding: 10px; background: {{ '#059669' if yesterday.photo_done else '#d1d5db' }}; border-radius: 4px; color: white;">
+                    Photo
+                </div>
+            </div>
+
+            {% if yesterday.steps %}
+            <p style="margin-top: 15px;"><strong>Steps:</strong> {{ yesterday.steps | int | format(',') }}</p>
+            {% endif %}
+        </div>
+        {% else %}
+        <div style="background: #fee2e2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+            <h2 style="margin-top: 0; color: #991b1b;">Yesterday</h2>
+            <p>No progress logged for yesterday. Don't forget to email your updates!</p>
+        </div>
+        {% endif %}
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
+                Keep pushing! Reply to this email with your daily update to log your progress.
+            </p>
+        </div>
+    </div>
+
+    <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 20px;">
+        Hard 75 Tracker
+    </p>
+</body>
+</html>

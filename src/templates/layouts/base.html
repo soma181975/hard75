@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Hard 75 Tracker{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/json-enc.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-gray-900">Hard 75</a>
+                </div>
+                {% if user %}
+                <div class="flex items-center space-x-4">
+                    {% if user.is_admin %}
+                    <a href="/admin" class="text-gray-600 hover:text-gray-900">Admin</a>
+                    {% endif %}
+                    <a href="/dashboard" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+                    <div class="flex items-center space-x-2">
+                        {% if user.avatar_url %}
+                        <img src="{{ user.avatar_url }}" alt="{{ user.name }}" class="w-8 h-8 rounded-full">
+                        {% else %}
+                        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                            {{ user.name[0].upper() }}
+                        </div>
+                        {% endif %}
+                        <span class="text-gray-700">{{ user.name }}</span>
+                    </div>
+                    <a href="/logout" class="text-gray-600 hover:text-gray-900">Logout</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-auto">
+        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-gray-500 text-sm">Hard 75 Tracker</p>
+        </div>
+    </footer>
+
+    <!-- Custom scripts -->
+    <script src="/static/js/charts.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,15 @@
+<div class="grid grid-cols-15 gap-1">
+    {% for i in range(1, 76) %}
+    <div class="w-6 h-6 rounded flex items-center justify-center text-xs cursor-pointer transition-colors
+        {% if days_map.get(i) %}
+        bg-green-500 text-white hover:bg-green-600
+        {% elif i in days_map %}
+        bg-yellow-400 text-gray-800 hover:bg-yellow-500
+        {% else %}
+        bg-gray-200 text-gray-500 hover:bg-gray-300
+        {% endif %}"
+         title="Day {{ i }}{% if i in days_map %}: {{ 'Complete' if days_map.get(i) else 'In progress' }}{% endif %}">
+        {{ i }}
+    </div>
+    {% endfor %}
+</div>

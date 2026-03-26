@@ -1,0 +1,37 @@
+# Web
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+jinja2>=3.1.0
+python-multipart>=0.0.9
+
+# Database
+asyncpg>=0.29.0
+supabase>=2.0.0
+
+# Storage
+boto3>=1.34.0
+
+# Auth
+authlib>=1.3.0
+itsdangerous>=2.1.0
+httpx>=0.27.0
+
+# Gmail
+google-api-python-client>=2.100.0
+google-auth-oauthlib>=1.2.0
+
+# AI
+anthropic>=0.18.0
+
+# Utils
+pydantic[email]>=2.5.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+pytz>=2024.1
+
+# Scheduler
+apscheduler>=3.10.0
+
+# Dev
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
