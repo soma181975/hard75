@@ -9,6 +9,7 @@ CREATE TABLE users (
     avatar_url TEXT,
     role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
     start_date DATE,
+    timezone VARCHAR(50) DEFAULT 'America/New_York',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

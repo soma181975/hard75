@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     # Agent
     agent_poll_interval_seconds: int = 300  # 5 minutes
 
+    # Timezone
+    default_timezone: str = "America/New_York"  # Eastern Time
+
     @property
     def is_development(self) -> bool:
         return self.app_env == "development"

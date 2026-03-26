@@ -21,6 +21,7 @@ class UserResponse(BaseModel):
     role: str
     avatar_url: Optional[str] = None
     start_date: Optional[date] = None
+    timezone: str = "America/New_York"
     current_streak: int = 0
     total_completed: int = 0
 
@@ -32,6 +33,7 @@ class UserCreate(BaseModel):
     name: str
     role: str = "user"
     start_date: Optional[date] = None
+    timezone: str = "America/New_York"
 
 
 class UserUpdate(BaseModel):
@@ -40,6 +42,7 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     role: Optional[str] = None
     start_date: Optional[date] = None
+    timezone: Optional[str] = None
 
 
 @router.get("", response_model=list[UserResponse])
@@ -64,6 +67,7 @@ async def list_users(admin: AdminUser):
             role=row["role"],
             avatar_url=row["avatar_url"],
             start_date=row["start_date"],
+            timezone=row["timezone"] or "America/New_York",
             current_streak=row["current_streak"] or 0,
             total_completed=row["total_completed"] or 0,
         )
@@ -84,14 +88,15 @@ async def create_user(admin: AdminUser, user: UserCreate):
 
     row = await db.fetchrow(
         """
-        INSERT INTO users (email, name, role, start_date)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO users (email, name, role, start_date, timezone)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING *
         """,
         user.email,
         user.name,
         user.role,
         user.start_date,
+        user.timezone,
     )
 
     return UserResponse(
@@ -101,6 +106,7 @@ async def create_user(admin: AdminUser, user: UserCreate):
         role=row["role"],
         avatar_url=row["avatar_url"],
         start_date=row["start_date"],
+        timezone=row["timezone"] or "America/New_York",
         current_streak=0,
         total_completed=0,
     )
@@ -131,6 +137,7 @@ async def get_user(admin: AdminUser, user_id: int):
         role=row["role"],
         avatar_url=row["avatar_url"],
         start_date=row["start_date"],
+        timezone=row["timezone"] or "America/New_York",
         current_streak=row["current_streak"] or 0,
         total_completed=row["total_completed"] or 0,
     )
@@ -178,6 +185,7 @@ async def update_user(admin: AdminUser, user_id: int, update: UserUpdate):
         role=row["role"],
         avatar_url=row["avatar_url"],
         start_date=row["start_date"],
+        timezone=row["timezone"] or "America/New_York",
         current_streak=streak or 0,
         total_completed=total or 0,
     )
