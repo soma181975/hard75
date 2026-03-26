@@ -102,6 +102,7 @@
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Read</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Photo</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Steps</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Meals</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -158,11 +159,95 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ day.steps | default('-', true) }}
                         </td>
+                        <td class="px-6 py-4 text-center">
+                            {% set day_meals = meals_by_date.get(day.date_str, []) %}
+                            {% if day_meals %}
+                            <button class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors cursor-pointer"
+                                    onclick="showMealsForDate('{{ day.date_str }}')">
+                                {{ day_meals | length }} meal{% if day_meals | length > 1 %}s{% endif %}
+                            </button>
+                            {% else %}
+                            <span class="text-gray-300">-</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- Recent Meals -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Meals</h2>
+        {% if meals %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for meal in meals %}
+            <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-sm font-medium text-gray-900">{{ meal.date }}</span>
+                    <span class="px-2 py-0.5 text-xs rounded-full
+                        {% if meal.meal_type == 'breakfast' %}bg-yellow-100 text-yellow-700
+                        {% elif meal.meal_type == 'lunch' %}bg-green-100 text-green-700
+                        {% elif meal.meal_type == 'dinner' %}bg-blue-100 text-blue-700
+                        {% elif meal.meal_type == 'snack' %}bg-purple-100 text-purple-700
+                        {% else %}bg-gray-100 text-gray-700{% endif %}">
+                        {{ meal.meal_type | title }}
+                    </span>
+                </div>
+
+                {% if meal.description %}
+                <p class="text-sm text-gray-600 mb-2">{{ meal.description }}</p>
+                {% endif %}
+
+                <!-- Macros -->
+                <div class="grid grid-cols-4 gap-2 text-center text-xs">
+                    {% if meal.calories %}
+                    <div>
+                        <p class="font-semibold text-gray-900">{{ meal.calories }}</p>
+                        <p class="text-gray-500">cal</p>
+                    </div>
+                    {% endif %}
+                    {% if meal.protein_g %}
+                    <div>
+                        <p class="font-semibold text-purple-600">{{ meal.protein_g }}g</p>
+                        <p class="text-gray-500">protein</p>
+                    </div>
+                    {% endif %}
+                    {% if meal.carbs_g %}
+                    <div>
+                        <p class="font-semibold text-blue-600">{{ meal.carbs_g }}g</p>
+                        <p class="text-gray-500">carbs</p>
+                    </div>
+                    {% endif %}
+                    {% if meal.fat_g %}
+                    <div>
+                        <p class="font-semibold text-yellow-600">{{ meal.fat_g }}g</p>
+                        <p class="text-gray-500">fat</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Food items -->
+                {% if meal.food_items and meal.food_items | length > 0 %}
+                <div class="mt-3 pt-3 border-t">
+                    <p class="text-xs text-gray-500 mb-1">Items:</p>
+                    <ul class="text-xs text-gray-600 space-y-0.5">
+                        {% for item in meal.food_items[:4] %}
+                        <li>{{ item.name }}{% if item.quantity %} ({{ item.quantity }}){% endif %}</li>
+                        {% endfor %}
+                        {% if meal.food_items | length > 4 %}
+                        <li class="text-gray-400">+{{ meal.food_items | length - 4 }} more</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500">No meals logged yet.</p>
+        {% endif %}
     </div>
 
     <!-- Recent Workouts -->
@@ -194,6 +279,130 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Meals Detail Modal -->
+<div id="mealsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Meals for <span id="mealsModalDate"></span></h3>
+            <button onclick="document.getElementById('mealsModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div id="mealsModalContent" class="space-y-4">
+            <!-- Meals will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Store meals data globally
+const mealsData = {{ meals_by_date | tojson | safe }};
+
+function showMealsForDate(dateStr) {
+    const meals = mealsData[dateStr] || [];
+    if (meals.length > 0) {
+        showMealsModal(dateStr, meals);
+    }
+}
+
+function showMealsModal(date, meals) {
+    document.getElementById('mealsModalDate').textContent = date;
+
+    let html = '';
+    let totalCals = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+
+    meals.forEach(meal => {
+        totalCals += meal.calories || 0;
+        totalProtein += meal.protein_g || 0;
+        totalCarbs += meal.carbs_g || 0;
+        totalFat += meal.fat_g || 0;
+
+        const mealTypeColors = {
+            'breakfast': 'bg-yellow-100 text-yellow-700',
+            'lunch': 'bg-green-100 text-green-700',
+            'dinner': 'bg-blue-100 text-blue-700',
+            'snack': 'bg-purple-100 text-purple-700',
+            'pre-workout': 'bg-orange-100 text-orange-700',
+            'post-workout': 'bg-red-100 text-red-700'
+        };
+        const colorClass = mealTypeColors[meal.meal_type] || 'bg-gray-100 text-gray-700';
+
+        html += `
+            <div class="border rounded-lg p-4">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="px-2 py-0.5 text-xs rounded-full ${colorClass}">
+                        ${meal.meal_type ? meal.meal_type.charAt(0).toUpperCase() + meal.meal_type.slice(1) : 'Meal'}
+                    </span>
+                </div>
+                ${meal.description ? `<p class="text-sm text-gray-600 mb-3">${meal.description}</p>` : ''}
+                <div class="grid grid-cols-4 gap-4 text-center text-sm mb-3">
+                    <div>
+                        <p class="font-semibold text-gray-900">${meal.calories || '-'}</p>
+                        <p class="text-xs text-gray-500">cal</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-purple-600">${meal.protein_g || '-'}g</p>
+                        <p class="text-xs text-gray-500">protein</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-blue-600">${meal.carbs_g || '-'}g</p>
+                        <p class="text-xs text-gray-500">carbs</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-yellow-600">${meal.fat_g || '-'}g</p>
+                        <p class="text-xs text-gray-500">fat</p>
+                    </div>
+                </div>
+                ${meal.food_items && meal.food_items.length > 0 ? `
+                    <div class="border-t pt-3">
+                        <p class="text-xs text-gray-500 mb-2">Food items:</p>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            ${meal.food_items.map(item => `
+                                <li class="flex justify-between">
+                                    <span>${item.name}${item.quantity ? ` (${item.quantity})` : ''}</span>
+                                    <span class="text-gray-400">${item.calories || ''}${item.calories ? ' cal' : ''}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+
+    // Add totals
+    html = `
+        <div class="bg-gray-50 rounded-lg p-4 mb-4">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">Daily Totals</h4>
+            <div class="grid grid-cols-4 gap-4 text-center">
+                <div>
+                    <p class="text-xl font-bold text-gray-900">${totalCals}</p>
+                    <p class="text-xs text-gray-500">calories</p>
+                </div>
+                <div>
+                    <p class="text-xl font-bold text-purple-600">${totalProtein}g</p>
+                    <p class="text-xs text-gray-500">protein</p>
+                </div>
+                <div>
+                    <p class="text-xl font-bold text-blue-600">${totalCarbs}g</p>
+                    <p class="text-xs text-gray-500">carbs</p>
+                </div>
+                <div>
+                    <p class="text-xl font-bold text-yellow-600">${totalFat}g</p>
+                    <p class="text-xs text-gray-500">fat</p>
+                </div>
+            </div>
+        </div>
+    ` + html;
+
+    document.getElementById('mealsModalContent').innerHTML = html;
+    document.getElementById('mealsModal').classList.remove('hidden');
+}
+</script>
 
 <!-- Edit User Modal -->
 <div id="editUserModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

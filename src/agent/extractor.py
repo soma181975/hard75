@@ -1,15 +1,80 @@
 """Claude-powered extraction of Hard 75 progress from emails."""
 
 import base64
+import io
 import json
+import logging
 import re
 from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
 import anthropic
+from PIL import Image
 
 from src.config import get_settings
+
+logger = logging.getLogger(__name__)
+
+# Max image size for Claude API (5MB)
+MAX_IMAGE_SIZE = 4 * 1024 * 1024  # 4MB to be safe
+
+
+def compress_image(img_data: bytes, mime_type: str, max_size: int = MAX_IMAGE_SIZE) -> tuple[bytes, str]:
+    """Compress image to fit within size limit.
+
+    Returns (compressed_data, mime_type).
+    """
+    if len(img_data) <= max_size:
+        return img_data, mime_type
+
+    logger.info(f"Compressing image from {len(img_data)} bytes")
+
+    # Open image
+    img = Image.open(io.BytesIO(img_data))
+
+    # Convert to RGB if necessary (for JPEG)
+    if img.mode in ('RGBA', 'P'):
+        img = img.convert('RGB')
+
+    # Start with original size and reduce
+    quality = 85
+    max_dimension = 2048
+
+    # Resize if too large
+    if max(img.size) > max_dimension:
+        ratio = max_dimension / max(img.size)
+        new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
+        img = img.resize(new_size, Image.LANCZOS)
+        logger.info(f"Resized to {new_size}")
+
+    # Compress with decreasing quality until under limit
+    while quality >= 20:
+        buffer = io.BytesIO()
+        img.save(buffer, format='JPEG', quality=quality, optimize=True)
+        compressed = buffer.getvalue()
+
+        if len(compressed) <= max_size:
+            logger.info(f"Compressed to {len(compressed)} bytes at quality {quality}")
+            return compressed, "image/jpeg"
+
+        quality -= 10
+
+    # Last resort: resize more aggressively
+    for scale in [0.75, 0.5, 0.25]:
+        new_size = (int(img.size[0] * scale), int(img.size[1] * scale))
+        img_resized = img.resize(new_size, Image.LANCZOS)
+
+        buffer = io.BytesIO()
+        img_resized.save(buffer, format='JPEG', quality=60, optimize=True)
+        compressed = buffer.getvalue()
+
+        if len(compressed) <= max_size:
+            logger.info(f"Compressed to {len(compressed)} bytes at scale {scale}")
+            return compressed, "image/jpeg"
+
+    logger.warning("Could not compress image enough, returning best effort")
+    return compressed, "image/jpeg"
 
 
 @dataclass
@@ -112,13 +177,21 @@ EXTRACTION_PROMPT = """You are analyzing an email containing a Hard 75 challenge
 3. **Meals (for each meal mentioned):**
    - Meal type: 'breakfast', 'lunch', 'dinner', 'snack', 'pre-workout', 'post-workout'
    - Description of the meal
-   - Calories
-   - Protein (grams)
-   - Carbs (grams)
-   - Fat (grams)
-   - Fiber (grams)
-   - Sugar (grams)
-   - Individual food items with their macros (if detailed)
+   - Calories (ESTIMATE if not provided - use your nutritional knowledge)
+   - Protein (grams) - ESTIMATE based on common portions
+   - Carbs (grams) - ESTIMATE based on common portions
+   - Fat (grams) - ESTIMATE based on common portions
+   - Fiber (grams) - ESTIMATE based on common portions
+   - Sugar (grams) - ESTIMATE if applicable
+   - Individual food items with their estimated macros
+
+   **IMPORTANT:** Even if macros are not explicitly stated, use your knowledge to estimate nutritional values for common foods. For example:
+   - 1 can tuna: ~120 cal, 25g protein, 0g carbs, 1g fat
+   - 1 egg: ~70 cal, 6g protein, 0g carbs, 5g fat
+   - 150g chicken breast: ~165 cal, 31g protein, 0g carbs, 3.5g fat
+   - bibimbap: ~500 cal, 20g protein, 70g carbs, 15g fat
+
+   If there are food images attached, analyze them to identify foods and estimate portions.
 
 4. **Additional Metrics:**
    - Steps count (if mentioned)
@@ -191,7 +264,24 @@ Respond with a JSON object in this exact format:
 ```
 
 If any information is not mentioned or unclear, use null or false as appropriate.
-Set confidence based on how clear and complete the information is."""
+Set confidence based on how clear and complete the information is.
+
+**Analyzing Images:**
+When images are provided, analyze each one to determine its type:
+
+1. **Progress Photo** (body/physique photo): A photo showing the person's body, typically in a mirror or standing pose. These are for tracking physical transformation.
+   - If you detect a progress photo, set `photo_done: true`
+
+2. **Meal/Food Photo**: A photo of food, plate, or meal.
+   - Use these to identify foods, estimate portions, and calculate nutritional values
+   - Add the identified foods to the meals array with estimated macros
+
+3. **Workout Screenshot**: Screenshots from fitness apps (Apple Health, Strengthlog, MyFitnessPal, etc.)
+   - Extract workout data, steps, or nutrition info shown
+
+4. **Other**: Ignore images that don't fit the above categories
+
+Only set `photo_done: true` if there is an actual progress/body photo - NOT for meal photos."""
 
 
 class Extractor:
@@ -221,12 +311,14 @@ class Extractor:
         # Add images if provided (screenshots from Apple Health, Strengthlog, etc.)
         if images:
             for img_data, mime_type in images:
+                # Compress image if too large
+                compressed_data, compressed_mime = compress_image(img_data, mime_type)
                 content.append({
                     "type": "image",
                     "source": {
                         "type": "base64",
-                        "media_type": mime_type,
-                        "data": base64.standard_b64encode(img_data).decode("utf-8"),
+                        "media_type": compressed_mime,
+                        "data": base64.standard_b64encode(compressed_data).decode("utf-8"),
                     },
                 })
 

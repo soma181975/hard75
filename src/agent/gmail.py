@@ -24,8 +24,9 @@ SCOPES = [
 class EmailMessage:
     """Parsed email message."""
 
-    id: str
+    id: str  # Gmail internal ID
     thread_id: str
+    message_id: str  # RFC Message-ID header (e.g., <abc123@mail.gmail.com>)
     sender: str
     subject: str
     date: str
@@ -154,6 +155,7 @@ class GmailClient:
         return EmailMessage(
             id=msg["id"],
             thread_id=msg["threadId"],
+            message_id=headers.get("message-id", ""),
             sender=headers.get("from", ""),
             subject=headers.get("subject", ""),
             date=headers.get("date", ""),

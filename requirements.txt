@@ -23,6 +23,9 @@ google-auth-oauthlib>=1.2.0
 # AI
 anthropic>=0.18.0
 
+# Image processing
+Pillow>=10.0.0
+
 # Utils
 pydantic[email]>=2.5.0
 pydantic-settings>=2.1.0

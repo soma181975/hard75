@@ -69,10 +69,11 @@ class AgentRunner:
             msg.id,
         )
         if existing:
-            logger.debug(f"Message {msg.id} already processed, skipping")
+            logger.debug(f"Message {msg.message_id} already processed, skipping")
             return
 
         logger.info(f"Processing message from {msg.sender}: {msg.subject}")
+        logger.info(f"Message-ID: {msg.message_id}")
 
         sender_email = extract_email_address(msg.sender)
 
@@ -162,6 +163,10 @@ class AgentRunner:
                 body_html=msg.body_html,
                 images=images[:3],  # Limit to 3 images for API
             )
+            logger.info(f"Extraction: day={extraction.day.day_number}, "
+                       f"workouts={len(extraction.workouts)}, "
+                       f"meals={len(extraction.meals)}, "
+                       f"confidence={extraction.confidence}")
         except Exception as e:
             logger.error(f"Failed to extract data: {e}")
             await self._record_processed(msg.id, user["id"], "failed", str(e))
@@ -185,7 +190,7 @@ class AgentRunner:
         # Record success
         await self._record_processed(msg.id, user["id"], "success", None)
         gmail_client.mark_as_read(msg.id)
-        logger.info(f"Successfully processed message {msg.id}")
+        logger.info(f"Successfully processed message {msg.message_id}")
 
     async def _record_processed(
         self,

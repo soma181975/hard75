@@ -168,13 +168,48 @@ async def admin_user_detail(request: Request, user_id: int):
         user_id,
     )
 
+    # Get recent meals
+    meals = await db.fetch(
+        """
+        SELECT * FROM meals
+        WHERE user_id = $1
+        ORDER BY date DESC, id DESC
+        LIMIT 20
+        """,
+        user_id,
+    )
+
+    # Group meals by date for easy lookup
+    meals_by_date = {}
+    for meal in meals:
+        meal_dict = dict(meal)
+        # Use isoformat for consistent date string format
+        date_str = meal_dict["date"].isoformat() if hasattr(meal_dict["date"], 'isoformat') else str(meal_dict["date"])
+        # Convert datetime objects to strings for JSON serialization
+        for key, value in meal_dict.items():
+            if hasattr(value, 'isoformat'):
+                meal_dict[key] = value.isoformat()
+        if date_str not in meals_by_date:
+            meals_by_date[date_str] = []
+        meals_by_date[date_str].append(meal_dict)
+
+    # Also convert day dates for template comparison
+    days_list = []
+    for d in days:
+        day_dict = dict(d)
+        # Store original date for display but also string version for lookup
+        day_dict["date_str"] = day_dict["date"].isoformat() if hasattr(day_dict["date"], 'isoformat') else str(day_dict["date"])
+        days_list.append(day_dict)
+
     return templates.TemplateResponse(
         request=request,
         name="pages/admin_user.html",
         context={
             "user": user,
             "target_user": dict(target_user),
-            "days": [dict(d) for d in days],
+            "days": days_list,
             "workouts": [dict(w) for w in workouts],
+            "meals": [dict(m) for m in meals],
+            "meals_by_date": meals_by_date,
         },
     )
